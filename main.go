@@ -5,10 +5,10 @@ import (
 	"log"
 	"fmt"
 	"strings"
-	"net/http"
 	"github.com/vbabiy/simple/simple/sfile"
 	_ "github.com/vbabiy/simple/simple/store"
 	"github.com/vbabiy/simple/simple/store"
+	"github.com/vbabiy/simple/simple/http"
 )
 
 func main() {
@@ -30,27 +30,9 @@ func main() {
 func handleServer(task string) {
 
 	if task == "start" {
-		http.HandleFunc("/what", func(w http.ResponseWriter, r *http.Request) {
-			out := `
-				<h1>What?</h1>
-				<ul>
-				%s
-				</ul>
-			`
-			lis := []string{}
-			for _, value := range store.MetaStore.All() {
-				lis = append(lis, fmt.Sprintf("<li>%s - %s</li>", value.UUID, value.Filename))
-			}
-			fmt.Fprintf(w, out, strings.Join(lis, ""))
-		})
-
-		http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
-			store.MetaStore.Reload()
-			w.Write([]byte("Done..."))
-		})
 
 		log.Println("Starging webserver...")
-		log.Fatal(http.ListenAndServe(":9999", nil))
+		log.Fatal(http.StartServer(":9999"))
 	} else {
 		log.Fatal("Missing Task...")
 	}
