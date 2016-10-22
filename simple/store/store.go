@@ -1,16 +1,17 @@
 package store
 
 import (
-	"github.com/vbabiy/simple/simple/data"
-	"io/ioutil"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
-	"io"
 	"path"
-	"github.com/vbabiy/simple/simple/sfile"
-	"strings"
 	"path/filepath"
+	"strings"
+
+	"github.com/vbabiy/simple/simple/data"
+	"github.com/vbabiy/simple/simple/sfile"
 )
 
 type store struct {
@@ -19,7 +20,7 @@ type store struct {
 
 const StorePath = ".store"
 
-func (s *store) All() ([]*data.SimpleData) {
+func (s *store) All() []*data.SimpleData {
 	out := make([]*data.SimpleData, len(s.records))
 	var idx int
 	for _, v := range s.records {
@@ -30,23 +31,28 @@ func (s *store) All() ([]*data.SimpleData) {
 	return out
 }
 
-func (s *store) Reload() (error) {
-	s.records = make(map[string]*data.SimpleData) // reset the map
-	if files, err := ioutil.ReadDir(StorePath); err != nil {
-		return err
-	} else {
-		for _, file := range files {
-			if strings.HasSuffix(file.Name(), ".json") {
-				simpleData, err := data.LoadSimpleDataFile(filepath.Join(StorePath, file.Name()))
-				if err != nil {
-					log.Fatal(err)
-					continue
-				}
-				addToStore(simpleData)
-			}
+func (s *store) Reload() error {
+	s.records = make(map[string]*data.SimpleData) // reset the map[type]type
+	if _, err := os.Stat(StorePath); os.IsNotExist(err) {
+		err = os.Mkdir(StorePath, 0700)
+		if err != nil {
+			return err
 		}
 	}
-
+	files, err := ioutil.ReadDir(StorePath)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".json") {
+			simpleData, err := data.LoadSimpleDataFile(filepath.Join(StorePath, file.Name()))
+			if err != nil {
+				log.Fatal(err)
+				continue
+			}
+			addToStore(simpleData)
+		}
+	}
 	return nil
 }
 func addToStore(s *data.SimpleData) {
@@ -54,7 +60,7 @@ func addToStore(s *data.SimpleData) {
 	MetaStore.records[string(s.UUID)] = s
 }
 
-func (s *store) Write(in io.Reader, data *data.SimpleData) (error) {
+func (s *store) Write(in io.Reader, data *data.SimpleData) error {
 	err := writeRawFile(in, data)
 	if err != nil {
 		log.Fatal(err)
@@ -110,7 +116,7 @@ var MetaStore store
 
 func init() {
 	MetaStore = store{
-		records:make(map[string]*data.SimpleData),
+		records: make(map[string]*data.SimpleData),
 	}
 	if err := MetaStore.Reload(); err != nil {
 		log.Fatal(err)
