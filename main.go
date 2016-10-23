@@ -23,15 +23,29 @@ func main() {
 				fmt.Println("An error occured while running the server", err)
 				os.Exit(1)
 			}
+			return
 		case "simple":
 			err := handleSimpleFile(task, os.Args[3:])
 			if err != nil {
 				fmt.Println("An error occured in Simple file handling", err)
 				os.Exit(1)
 			}
+			return
 		}
 	}
-	fmt.Println("Command is <component> <task>")
+	usage()
+}
+
+func usage() {
+	fmt.Println(`
+	Command is <component> <task>
+
+	To start the server:
+		simple server start 
+
+	To add a file:
+		simple simple add <path-to-file>
+`)
 }
 
 func handleServer(task string) error {
