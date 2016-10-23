@@ -12,20 +12,26 @@ import (
 )
 
 func main() {
+	s, err := store.New()
+	if err != nil {
+		fmt.Println("An error occured while creating the store:", err)
+		os.Exit(1)
+	}
+
 	if len(os.Args) >= 3 {
 		component, task := os.Args[1], os.Args[2]
 		component = strings.ToLower(strings.Trim(component, " "))
 		task = strings.ToLower(strings.Trim(task, " "))
 		switch component {
 		case "server":
-			err := handleServer(task)
+			err := handleServer(s, task)
 			if err != nil {
 				fmt.Println("An error occured while running the server", err)
 				os.Exit(1)
 			}
 			return
 		case "simple":
-			err := handleSimpleFile(task, os.Args[3:])
+			err := handleSimpleFile(s, task, os.Args[3:])
 			if err != nil {
 				fmt.Println("An error occured in Simple file handling", err)
 				os.Exit(1)
@@ -48,15 +54,15 @@ func usage() {
 `)
 }
 
-func handleServer(task string) error {
+func handleServer(s *store.Store, task string) error {
 	if task != "start" {
 		return fmt.Errorf("Missing Task...")
 	}
 	log.Println("Starging webserver...")
-	return http.StartServer(":9999")
+	return http.StartServer(s, ":9999")
 }
 
-func handleSimpleFile(task string, args []string) error {
+func handleSimpleFile(s *store.Store, task string, args []string) error {
 	if task != "add" {
 		return fmt.Errorf("Simple task must be add")
 	}
@@ -75,7 +81,7 @@ func handleSimpleFile(task string, args []string) error {
 	defer file.Close()
 
 	// Add to current store
-	meta, err := store.MetaStore.Add(file)
+	meta, err := s.Add(file)
 	if err != nil {
 		return err
 	}

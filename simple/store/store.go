@@ -16,11 +16,21 @@ import (
 
 const StorePath = ".store"
 
-type store struct {
+type Store struct {
 	records map[string]*data.SimpleData
 }
 
-func (s *store) All() []*data.SimpleData {
+func New() (*Store, error) {
+	s := &Store{
+		records: make(map[string]*data.SimpleData),
+	}
+	if err := s.Reload(); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (s *Store) All() []*data.SimpleData {
 	out := make([]*data.SimpleData, len(s.records))
 	var idx int
 	for _, v := range s.records {
@@ -30,7 +40,7 @@ func (s *store) All() []*data.SimpleData {
 	return out
 }
 
-func (s *store) Reload() error {
+func (s *Store) Reload() error {
 	s.records = make(map[string]*data.SimpleData) // reset the map[type]type
 	if _, err := os.Stat(StorePath); os.IsNotExist(err) {
 		// StorePath does not exist. We try to create it.
@@ -50,18 +60,18 @@ func (s *store) Reload() error {
 				return err
 			}
 			// TODO: why not a method
-			addToStore(simpleData)
+			s.addToStore(simpleData)
 		}
 	}
 	return nil
 }
 
-func addToStore(s *data.SimpleData) {
-	log.Println("Loading", s.UUID, "...")
-	MetaStore.records[string(s.UUID)] = s
+func (s *Store) addToStore(d *data.SimpleData) {
+	log.Println("Loading", d.UUID, "...")
+	s.records[string(d.UUID)] = d
 }
 
-func (s *store) Write(in io.Reader, data *data.SimpleData) error {
+func (s *Store) Write(in io.Reader, data *data.SimpleData) error {
 	err := writeRawFile(in, data)
 	if err != nil {
 		return err
@@ -105,7 +115,7 @@ func writeRawFile(in io.Reader, data *data.SimpleData) error {
 	return nil
 }
 
-func (s *store) Add(in *os.File) (*data.SimpleData, error) {
+func (s *Store) Add(in *os.File) (*data.SimpleData, error) {
 	m := data.New(in)
 
 	// Reset the file
@@ -119,17 +129,6 @@ func (s *store) Add(in *os.File) (*data.SimpleData, error) {
 		return nil, err
 	}
 
-	addToStore(m)
+	s.addToStore(m)
 	return m, nil
-}
-
-var MetaStore store
-
-func init() {
-	MetaStore = store{
-		records: make(map[string]*data.SimpleData),
-	}
-	if err := MetaStore.Reload(); err != nil {
-		log.Fatal(err)
-	}
 }
