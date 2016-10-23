@@ -1,13 +1,14 @@
 package http
 
 import (
-	"github.com/vbabiy/simple/simple/store"
 	"fmt"
-	"strings"
 	"net/http"
+	"strings"
+
+	"github.com/vbabiy/simple/simple/store"
 )
 
-func StartServer(address string) error {
+func StartServer(s *store.Store, address string) error {
 	http.HandleFunc("/what", func(w http.ResponseWriter, r *http.Request) {
 		out := `
 				<h1>What?</h1>
@@ -16,14 +17,14 @@ func StartServer(address string) error {
 				</ul>
 			`
 		lis := []string{}
-		for _, value := range store.MetaStore.All() {
+		for _, value := range s.All() {
 			lis = append(lis, fmt.Sprintf("<li>%s - %s</li>", value.UUID, value.Filename))
 		}
 		fmt.Fprintf(w, out, strings.Join(lis, ""))
 	})
 
 	http.HandleFunc("/reload", func(w http.ResponseWriter, r *http.Request) {
-		store.MetaStore.Reload()
+		s.Reload()
 		w.Write([]byte("Done..."))
 	})
 
